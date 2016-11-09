@@ -578,13 +578,13 @@ TODO: correct this bug!"
    (should-not (yas-lookup-snippet "no such snippet" nil 'noerror))
    (should-not (yas-lookup-snippet "printf" 'emacs-lisp-mode 'noerror))))
 
-(ert-deftest basic-jit-loading ()
+(ert-deftest basic-lazy-loading ()
   "Test basic loading and expansion of snippets"
   (yas-with-some-interesting-snippet-dirs
    (yas-reload-all)
-   (yas--basic-jit-loading-1)))
+   (yas--basic-lazy-loading-1)))
 
-(ert-deftest basic-jit-loading-with-compiled-snippets ()
+(ert-deftest basic-lazy-loading-with-compiled-snippets ()
   "Test basic loading and expansion of compiled snippets"
   (yas-with-some-interesting-snippet-dirs
    (yas-reload-all)
@@ -593,7 +593,7 @@ TODO: correct this bug!"
               (lambda (&rest _dummies)
                 (ert-fail "yas--load-directory-2 shouldn't be called when snippets have been compiled"))))
      (yas-reload-all)
-     (yas--basic-jit-loading-1))))
+     (yas--basic-lazy-loading-1))))
 
 (ert-deftest snippet-load-uuid ()
   "Test snippets with same uuid override old ones."
@@ -739,7 +739,7 @@ TODO: correct this bug!"
 (define-derived-mode yas--test-mode c-mode "Just a test mode")
 (define-derived-mode yas--another-test-mode c-mode "Another test mode")
 
-(ert-deftest issue-504-tricky-jit ()
+(ert-deftest issue-504-tricky-lazy-loding ()
   (yas-with-snippet-dirs
    '((".emacs.d/snippets"
       ("yas--another-test-mode"
@@ -751,16 +751,16 @@ TODO: correct this bug!"
      (unwind-protect
          (progn
            (yas-reload-all)
-           (should (= 0 (hash-table-count yas--scheduled-lazy-loads))))
+           (should (= 0 (hash-table-count yas--scheduled-lazy-loadings))))
        (kill-buffer b)))))
 
-(defun yas--basic-jit-loading-1 ()
+(defun yas--basic-lazy-loading-1 ()
   (with-temp-buffer
-    (should (= 4 (hash-table-count yas--scheduled-lazy-loads)))
+    (should (= 4 (hash-table-count yas--scheduled-lazy-loadings)))
     (should (= 0 (hash-table-count yas--tables)))
     (lisp-interaction-mode)
     (yas-minor-mode 1)
-    (should (= 2 (hash-table-count yas--scheduled-lazy-loads)))
+    (should (= 2 (hash-table-count yas--scheduled-lazy-loadings)))
     (should (= 2 (hash-table-count yas--tables)))
     (should (= 1 (hash-table-count (yas--table-uuidhash (gethash 'lisp-interaction-mode yas--tables)))))
     (should (= 2 (hash-table-count (yas--table-uuidhash (gethash 'emacs-lisp-mode yas--tables)))))
@@ -769,7 +769,7 @@ TODO: correct this bug!"
                          ("ert-deftest" . "(ert-deftest name () )")))
     (c-mode)
     (yas-minor-mode 1)
-    (should (= 0 (hash-table-count yas--scheduled-lazy-loads)))
+    (should (= 0 (hash-table-count yas--scheduled-lazy-loadings)))
     (should (= 4 (hash-table-count yas--tables)))
     (should (= 1 (hash-table-count (yas--table-uuidhash (gethash 'c-mode yas--tables)))))
     (should (= 1 (hash-table-count (yas--table-uuidhash (gethash 'cc-mode yas--tables)))))

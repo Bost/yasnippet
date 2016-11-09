@@ -138,7 +138,7 @@
 (defvar yas--editing-template)
 (defvar yas--guessed-modes)
 (defvar yas--indent-original-column)
-(defvar yas--scheduled-lazy-loads)
+(defvar yas--scheduled-lazy-loadings)
 (defvar yas-keymap)
 (defvar yas-selected-text)
 (defvar yas-verbosity)
@@ -851,11 +851,11 @@ Honour `yas-dont-activate-functions', which see."
 ;;;###autoload
 (define-globalized-minor-mode yas-global-mode yas-minor-mode yas-minor-mode-on)
 
-(defun yas--global-mode-reload-with-jit-maybe ()
+(defun yas--global-mode-reload-with-lazy-loads-maybe ()
   "Run `yas-reload-all' when `yas-global-mode' is on."
   (when yas-global-mode (yas-reload-all)))
 
-(add-hook 'yas-global-mode-hook #'yas--global-mode-reload-with-jit-maybe)
+(add-hook 'yas-global-mode-hook #'yas--global-mode-reload-with-lazy-loads-maybe)
 
 
 ;;; Major mode stuff
@@ -1701,12 +1701,12 @@ the current buffers contents."
                          (gethash mode yas--parents)))
            yas--parents))
 
-(defun yas-load-directory (top-level-dir &optional use-jit interactive)
+(defun yas-load-directory (top-level-dir &optional lazy-load interactive)
   "Load snippets in directory hierarchy TOP-LEVEL-DIR.
 
 Below TOP-LEVEL-DIR each directory should be a mode name.
 
-With prefix argument USE-JIT do jit-loading of snippets."
+With prefix argument LAZY-LOAD do lazy-loading of snippets."
   (interactive
    (list (read-directory-name "Select the root directory: " nil nil t)
          current-prefix-arg t))
@@ -1719,10 +1719,10 @@ With prefix argument USE-JIT do jit-loading of snippets."
              (mode-sym (car major-mode-and-parents))
              (parents (cdr major-mode-and-parents)))
         ;; Attention: The parents and the menus are already defined
-        ;; here, even if the snippets are later jit-loaded.
+        ;; here, even if the snippets are lazy-loaded.
         ;;
         ;; * We need to know the parents at this point since entering a
-        ;;   given mode should jit load for its parents
+        ;;   given mode should lazy-load for its parents
         ;;   immediately. This could be reviewed, the parents could be
         ;;   discovered just-in-time-as well
         ;;
@@ -1733,13 +1733,13 @@ With prefix argument USE-JIT do jit-loading of snippets."
         (yas--menu-keymap-get-create mode-sym)
         (let ((fun `(lambda () ;; FIXME: Simulating lexical-binding.
                       (yas--load-directory-1 ',dir ',mode-sym))))
-          (if use-jit
-              (yas--schedule-jit mode-sym fun)
+          (if lazy-load
+              (yas--schedule-lazy-loading mode-sym fun)
             (funcall fun)))
         ;; Look for buffers that are already in `mode-sym', and so
         ;; need the new snippets immediately...
         ;;
-        (when use-jit
+        (when lazy-load
           (cl-loop for buffer in (buffer-list)
                    do (with-current-buffer buffer
                         (when (eq major-mode mode-sym)
@@ -1825,6 +1825,7 @@ loading.
 When called interactively, use just-in-time loading when given a
 prefix argument."
   (interactive (list (not current-prefix-arg) t))
+  (message (format "eager-loading: %s" eager-loading))
   (catch 'abort
     (let ((errors)
           (snippet-editing-buffers
@@ -1863,9 +1864,9 @@ prefix argument."
       ;; Now empty `yas--menu-table' as well
       (setq yas--menu-table (make-hash-table))
 
-      ;; Cancel all pending 'yas--scheduled-lazy-loads'
+      ;; Cancel all pending 'yas--scheduled-lazy-loadings'
       ;;
-      (setq yas--scheduled-lazy-loads (make-hash-table))
+      (setq yas--scheduled-lazy-loadings (make-hash-table))
 
       ;; Reload the directories listed in `yas-snippet-dirs' or prompt
       ;; the user to select one.
@@ -1885,12 +1886,12 @@ prefix argument."
 
 (defun yas--load-pending-lazy-loads ()
   (dolist (mode (yas--modes-to-activate))
-    (let ((funs (reverse (gethash mode yas--scheduled-lazy-loads))))
+    (let ((funs (reverse (gethash mode yas--scheduled-lazy-loadings))))
       ;; must reverse to maintain coherence with `yas-snippet-dirs'
       (dolist (fun funs)
         (yas--message 4 "Loading for `%s', just-in-time: %s!" mode fun)
         (funcall fun))
-      (remhash mode yas--scheduled-lazy-loads))))
+      (remhash mode yas--scheduled-lazy-loadings))))
 
 (defun yas-escape-text (text)
   "Escape TEXT for snippet."
@@ -1915,14 +1916,14 @@ This works by stubbing a few functions, then calling
   (mapc #'yas-compile-directory (yas-snippet-dirs)))
 
 
-;;; JIT loading
+;;; lazy loading
 ;;;
 
-(defvar yas--scheduled-lazy-loads (make-hash-table)
+(defvar yas--scheduled-lazy-loadings (make-hash-table)
   "Alist of mode-symbols to forms to be evaled when `yas-minor-mode' kicks in.")
 
-(defun yas--schedule-jit (mode fun)
-  (push fun (gethash mode yas--scheduled-lazy-loads)))
+(defun yas--schedule-lazy-loading (mode fun)
+  (push fun (gethash mode yas--scheduled-lazy-loadings)))
 
 
 
