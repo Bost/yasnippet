@@ -751,16 +751,16 @@ TODO: correct this bug!"
      (unwind-protect
          (progn
            (yas-reload-all)
-           (should (= 0 (hash-table-count yas--scheduled-jit-loads))))
+           (should (= 0 (hash-table-count yas--scheduled-lazy-loads))))
        (kill-buffer b)))))
 
 (defun yas--basic-jit-loading-1 ()
   (with-temp-buffer
-    (should (= 4 (hash-table-count yas--scheduled-jit-loads)))
+    (should (= 4 (hash-table-count yas--scheduled-lazy-loads)))
     (should (= 0 (hash-table-count yas--tables)))
     (lisp-interaction-mode)
     (yas-minor-mode 1)
-    (should (= 2 (hash-table-count yas--scheduled-jit-loads)))
+    (should (= 2 (hash-table-count yas--scheduled-lazy-loads)))
     (should (= 2 (hash-table-count yas--tables)))
     (should (= 1 (hash-table-count (yas--table-uuidhash (gethash 'lisp-interaction-mode yas--tables)))))
     (should (= 2 (hash-table-count (yas--table-uuidhash (gethash 'emacs-lisp-mode yas--tables)))))
@@ -769,7 +769,7 @@ TODO: correct this bug!"
                          ("ert-deftest" . "(ert-deftest name () )")))
     (c-mode)
     (yas-minor-mode 1)
-    (should (= 0 (hash-table-count yas--scheduled-jit-loads)))
+    (should (= 0 (hash-table-count yas--scheduled-lazy-loads)))
     (should (= 4 (hash-table-count yas--tables)))
     (should (= 1 (hash-table-count (yas--table-uuidhash (gethash 'c-mode yas--tables)))))
     (should (= 1 (hash-table-count (yas--table-uuidhash (gethash 'cc-mode yas--tables)))))

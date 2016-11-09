@@ -138,7 +138,7 @@
 (defvar yas--editing-template)
 (defvar yas--guessed-modes)
 (defvar yas--indent-original-column)
-(defvar yas--scheduled-jit-loads)
+(defvar yas--scheduled-lazy-loads)
 (defvar yas-keymap)
 (defvar yas-selected-text)
 (defvar yas-verbosity)
@@ -773,9 +773,9 @@ Key bindings:
            (let ((name (intern (format "yas--direct-%s" mode))))
              (set-default name nil)
              (set (make-local-variable name) t)))
-         ;; Perform JIT loads
+         ;; Perform lazy loads
          ;;
-         (yas--load-pending-jits))
+         (yas--load-pending-lazy-loads))
         (t
          ;; Uninstall the direct keymaps and the post-command hook
          ;;
@@ -801,7 +801,7 @@ activate snippets associated with that mode."
         (intern symbol)))))
   (when mode
     (add-to-list (make-local-variable 'yas--extra-modes) mode)
-    (yas--load-pending-jits)))
+    (yas--load-pending-lazy-loads)))
 
 (defun yas-deactivate-extra-mode (mode)
   "Deactivates the snippets for the given `mode' in the buffer."
@@ -1746,10 +1746,10 @@ With prefix argument USE-JIT do jit-loading of snippets."
                           (yas--message 4 "Discovered there was already %s in %s" buffer mode-sym)
                           (push buffer impatient-buffers)))))))
     ;; ...after TOP-LEVEL-DIR has been completely loaded, call
-    ;; `yas--load-pending-jits' in these impatient buffers.
+    ;; `yas--load-pending-lazy-loads' in these impatient buffers.
     ;;
     (cl-loop for buffer in impatient-buffers
-             do (with-current-buffer buffer (yas--load-pending-jits))))
+             do (with-current-buffer buffer (yas--load-pending-lazy-loads))))
   (when interactive
     (yas--message 3 "Loaded snippets from %s." top-level-dir)))
 
@@ -1863,9 +1863,9 @@ prefix argument."
       ;; Now empty `yas--menu-table' as well
       (setq yas--menu-table (make-hash-table))
 
-      ;; Cancel all pending 'yas--scheduled-jit-loads'
+      ;; Cancel all pending 'yas--scheduled-lazy-loads'
       ;;
-      (setq yas--scheduled-jit-loads (make-hash-table))
+      (setq yas--scheduled-lazy-loads (make-hash-table))
 
       ;; Reload the directories listed in `yas-snippet-dirs' or prompt
       ;; the user to select one.
@@ -1883,14 +1883,14 @@ prefix argument."
 (defvar yas-after-reload-hook nil
   "Hooks run after `yas-reload-all'.")
 
-(defun yas--load-pending-jits ()
+(defun yas--load-pending-lazy-loads ()
   (dolist (mode (yas--modes-to-activate))
-    (let ((funs (reverse (gethash mode yas--scheduled-jit-loads))))
+    (let ((funs (reverse (gethash mode yas--scheduled-lazy-loads))))
       ;; must reverse to maintain coherence with `yas-snippet-dirs'
       (dolist (fun funs)
         (yas--message 4 "Loading for `%s', just-in-time: %s!" mode fun)
         (funcall fun))
-      (remhash mode yas--scheduled-jit-loads))))
+      (remhash mode yas--scheduled-lazy-loads))))
 
 (defun yas-escape-text (text)
   "Escape TEXT for snippet."
@@ -1918,11 +1918,11 @@ This works by stubbing a few functions, then calling
 ;;; JIT loading
 ;;;
 
-(defvar yas--scheduled-jit-loads (make-hash-table)
+(defvar yas--scheduled-lazy-loads (make-hash-table)
   "Alist of mode-symbols to forms to be evaled when `yas-minor-mode' kicks in.")
 
 (defun yas--schedule-jit (mode fun)
-  (push fun (gethash mode yas--scheduled-jit-loads)))
+  (push fun (gethash mode yas--scheduled-lazy-loads)))
 
 
 
