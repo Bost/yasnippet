@@ -773,9 +773,9 @@ Key bindings:
            (let ((name (intern (format "yas--direct-%s" mode))))
              (set-default name nil)
              (set (make-local-variable name) t)))
-         ;; Perform lazy loads
+         ;; Perform lazy loadings
          ;;
-         (yas--load-pending-lazy-loads))
+         (yas--load-pending-lazy-loadings))
         (t
          ;; Uninstall the direct keymaps and the post-command hook
          ;;
@@ -801,7 +801,7 @@ activate snippets associated with that mode."
         (intern symbol)))))
   (when mode
     (add-to-list (make-local-variable 'yas--extra-modes) mode)
-    (yas--load-pending-lazy-loads)))
+    (yas--load-pending-lazy-loadings)))
 
 (defun yas-deactivate-extra-mode (mode)
   "Deactivates the snippets for the given `mode' in the buffer."
@@ -1746,10 +1746,10 @@ With prefix argument LAZY-LOAD do lazy-loading of snippets."
                           (yas--message 4 "Discovered there was already %s in %s" buffer mode-sym)
                           (push buffer impatient-buffers)))))))
     ;; ...after TOP-LEVEL-DIR has been completely loaded, call
-    ;; `yas--load-pending-lazy-loads' in these impatient buffers.
+    ;; `yas--load-pending-lazy-loadings' in these impatient buffers.
     ;;
     (cl-loop for buffer in impatient-buffers
-             do (with-current-buffer buffer (yas--load-pending-lazy-loads))))
+             do (with-current-buffer buffer (yas--load-pending-lazy-loadings))))
   (when interactive
     (yas--message 3 "Loaded snippets from %s." top-level-dir)))
 
@@ -1884,7 +1884,7 @@ prefix argument."
 (defvar yas-after-reload-hook nil
   "Hooks run after `yas-reload-all'.")
 
-(defun yas--load-pending-lazy-loads ()
+(defun yas--load-pending-lazy-loadings ()
   (dolist (mode (yas--modes-to-activate))
     (let ((funs (reverse (gethash mode yas--scheduled-lazy-loadings))))
       ;; must reverse to maintain coherence with `yas-snippet-dirs'
