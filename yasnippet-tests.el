@@ -755,6 +755,8 @@ TODO: correct this bug!"
        (kill-buffer b)))))
 
 (defun yas--basic-lazy-loading-1 ()
+  (message (format  "### (count yas--scheduled-lazy-loadings: %d)"
+                    (count yas--scheduled-lazy-loadings)))
   (with-temp-buffer
     (should (= 4 (hash-table-count yas--scheduled-lazy-loadings)))
     (should (= 0 (hash-table-count yas--tables)))
